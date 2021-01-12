@@ -1,31 +1,26 @@
 #include <Adafruit_NeoPixel.h>
-
-//Config values:
-#define ROWS 3
-#define COLUMNS 4
+#include "Keypad_functions.h"
+#include "Constants.h"
 
 int rainR = 000;
 int rainG = 255;
 int rainB = 255;
-
-int inc = 25;
-
 String rainMode = "gd";
 
-int r = ROWS;
-int c = COLUMNS;
-double dim = 0.5; //Strip brightness
+int inc = 1; //How fast the rainbow updates, higher = faster
+
+double dim = 0.1; //Strip brightness
 boolean keys[ROWS][COLUMNS];
 int ledloc[ROWS][COLUMNS];
 int ledCount = sizeof(keys);
 int counter = 0;
 
 int rowPins[ROWS] = {
-  7, 8, 9
+  0, 1, 2
 };
 
 int colPins[COLUMNS] = {
-  A0, A1, A2, A3
+  3, 4, 5, 6
 };
 
 int colors[ROWS][COLUMNS][4]; //LED colors are GRBW, for RGB set the third dimension to 3
@@ -33,10 +28,9 @@ int colors[ROWS][COLUMNS][4]; //LED colors are GRBW, for RGB set the third dimen
 Adafruit_NeoPixel backlight(ledCount, A7, NEO_GRBW + NEO_KHZ800);
 
 void setup() {
-  backlight.begin();
   Serial.begin(9600);
-  delay(5000);
-  Serial.println("test");
+  backlight.begin();
+  backlight.setBrightness(constrain(dim * 255, 0, 255));
   pinMode(0, INPUT_PULLUP);
   pinMode(1, INPUT_PULLUP);
   pinMode(2, INPUT_PULLUP);
@@ -55,10 +49,10 @@ void setup() {
 
 
 void loop() {
-  readKeys();
-  printKeys();
+  readKeys(keys, rowPins, colPins);
+  writePresses;
   counter++;
-  if (counter == 20) {
+  if (counter == 100) {
     pressedColors();
     writeColors();
     counter = 0;
@@ -70,23 +64,11 @@ void loop() {
 
 
 
-
-
-void readKeys() {
-  for (int i = 0; i < 4; i++) {
-    digitalWrite(i + 3, LOW);
-    keys[0][i] = digitalRead(0);
-    keys[1][i] = digitalRead(1);
-    keys[2][i] = digitalRead(2);
-    digitalWrite(i + 3, HIGH);
-  }
-}
-
-void printKeys() { //For debugging, prints key status (pushed or not) to Serial console
-  for (int i = 0; i < r; i++) {
-    for (int j = 0; j < c; j++) {
+void printKeys() { //For debugging, prints key status (pushed or not) to Serial console. Make sure to uncomment the Serial.begin line at the top of setup if you use this
+  for (int i = 0; i < ROWS; i++) {
+    for (int j = 0; j < COLUMNS; j++) {
       Serial.print(keys[i][j]);
-      if (j == c - 1) {
+      if (j == COLUMNS - 1) {
         Serial.println();
       } else {
         Serial.print(" | ");
@@ -95,75 +77,47 @@ void printKeys() { //For debugging, prints key status (pushed or not) to Serial 
   }
 }
 
-void writeColors() { //Writes correct colors to LEDs
+void writeColors() { //Writes colors to pixels from the colors array
   int x = 0;
-  for (int i = 0; i < r; i++) {
-    for (int j = 0; j < c; j++) {
+  for (int i = 0; i < ROWS; i++) {
+    for (int j = 0; j < COLUMNS; j++) {
       backlight.setPixelColor(x, pixelColor(i, j));
-      Serial.print("Set pixel ");
-      Serial.print(i);
-      Serial.print(",  ");
-      Serial.print(j);
-      Serial.print(" to ");
-      Serial.println(pixelColor(i, j));
       x++;
     }
   }
   backlight.show();
 }
 
-void writeAll(int green, int red, int blue, int white) {
-  Serial.println(colors[0][0][0]);
-  Serial.println(colors[0][0][1]);
-  Serial.println(colors[0][0][2]);
-  Serial.println(colors[0][0][3]);
-  for (int i = 0;  i < r; i++) {
-    for (int j = 0; j < c; j++) {
+void writeAll(int green, int red, int blue, int white) { //Writes an RGBW value to every slot in the light array
+  for (int i = 0;  i < ROWS; i++) {
+    for (int j = 0; j < COLUMNS; j++) {
       colors[i][j][0] = green;
       colors[i][j][1] = red;
       colors[i][j][2] = blue;
       colors[i][j][3] = white;
     }
   }
-  Serial.println(colors[0][0][0]);
-  Serial.println(colors[0][0][1]);
-  Serial.println(colors[0][0][2]);
-  Serial.println(colors[0][0][3]);
 }
 
-void constrainColors() {
-  for (int i = 0;  i < r; i++) {
-    for (int j = 0; j < c; j++) {
-      for (int k = 0; k < 3; k++) {
-        colors[i][j][k] = constrain(colors[i][j][k], 0, 255);
-      }
-    }
-  }
-}
-
-void pressedColors() {
-  for (int i = 0; i < r; i++) {
-    for (int j = 0; j < c; j++) {
+void pressedColors() { //Demo lighting function that sets all pressed keys to rainbow
+  for (int i = 0; i < ROWS; i++) {
+    for (int j = 0; j < COLUMNS; j++) {
       if (keys[i][j]) {
-        colors[i][j][0] = 0;
-        colors[i][j][1] = 0;
-        colors[i][j][2] = 0;
-        colors[i][j][3] = 255;
-      } else {
         colors[i][j][0] = rainR;
         colors[i][j][1] = rainG;
         colors[i][j][2] = rainB;
+        colors[i][j][3] = 0;
+      } else {
+        colors[i][j][0] = 255 - rainR;
+        colors[i][j][1] = 255 - rainG;
+        colors[i][j][2] = 255 - rainB;
         colors[i][j][3] = 0;
       }
     }
   }
 }
 
-uint32_t pixelColor(int i, int j) { //Basically just the strip.Color function from the Adafruit Neopixel library, just for the colors array
-  return ((uint32_t)colors[i][j][3] << 24) | ((uint32_t)colors[i][j][0] << 16) | ((uint32_t)colors[i][j][1] <<  8) | colors[i][j][2];
-}
-
-void updateRain() {
+void updateRain() { //Called every few loops, updates the rainbow values
   if (rainMode == "ru") {
     rainR += inc;
   } else if (rainMode == "rd") {
@@ -195,4 +149,8 @@ void updateRain() {
   } else if (rainB == 0 && rainR == 0) {
     rainMode = "bu";
   }
+}
+
+uint32_t pixelColor(int i, int j) { //Basically just the strip.Color function from the Adafruit Neopixel library, just for the colors array
+  return ((uint32_t)colors[i][j][3] << 24) | ((uint32_t)colors[i][j][0] << 16) | ((uint32_t)colors[i][j][1] <<  8) | colors[i][j][2];
 }
