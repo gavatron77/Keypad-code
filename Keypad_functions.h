@@ -4,7 +4,7 @@
 void printKeys(boolean* keys) { //For debugging, prints key status (pushed or not) to Serial console. Make sure to uncomment the Serial.begin line at the top of setup if you use this
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      Serial.print(keys[i * ROWS + j]);
+      Serial.print(keys[i * COLUMNS + j]);
       if (j == COLUMNS - 1) {
         Serial.println();
       } else {
@@ -18,7 +18,7 @@ void writeColors(Adafruit_NeoPixel& backlight, uint32_t* colors) { //Writes colo
   int x = 0;
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      backlight.setPixelColor(x, colors[i * ROWS + j]);
+      backlight.setPixelColor(x, colors[i * COLUMNS + j]);
       x++;
     }
   }
@@ -28,7 +28,7 @@ void writeColors(Adafruit_NeoPixel& backlight, uint32_t* colors) { //Writes colo
 void writeAll(int green, int red, int blue, int white, uint32_t* colors) { //Writes an RGBW value to every slot in the light array
   for (int i = 0;  i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      colors[i * ROWS + j] = Adafruit_NeoPixel::Color(green, red, blue, white);
+      colors[i * COLUMNS + j] = Adafruit_NeoPixel::Color(green, red, blue, white);
     }
   }
 }
@@ -36,10 +36,10 @@ void writeAll(int green, int red, int blue, int white, uint32_t* colors) { //Wri
 void pressedColors(uint32_t* colors, boolean* keys) { //Demo lighting function that sets all pressed keys to rainbow
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      if (keys[i * ROWS + j]) {
-        colors[i * ROWS + j] = Adafruit_NeoPixel::Color(255, 0, 255, 0);
+      if (keys[i * COLUMNS + j]) {
+        colors[i * COLUMNS + j] = Adafruit_NeoPixel::Color(255, 0, 255, 0);
       } else {
-        colors[i * ROWS + j] = Adafruit_NeoPixel::Color(0, 255, 255, 0);
+        colors[i * COLUMNS + j] = Adafruit_NeoPixel::Color(0, 255, 255, 0);
       }
     }
   }
@@ -49,7 +49,7 @@ void readKeys(boolean* keys) { //Updates key states in the keys array
   for (int i = 0; i < COLUMNS; i++) {
     digitalWrite(colPins[i], LOW);
     for (int j = 0; j < ROWS; j++) {
-      keys[j * ROWS + i] = !digitalRead(rowPins[j]);
+      keys[j * COLUMNS + i] = !digitalRead(rowPins[j]);
     }
     digitalWrite(colPins[i], HIGH);
   }
@@ -66,7 +66,7 @@ void booleanKeyboard(boolean logic, char key) {
 void updateKeys(boolean* keys) {
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
-      booleanKeyboard(keys[i * ROWS + j], keyAssign[i * ROWS + j]);
+      booleanKeyboard(keys[i * COLUMNS + j], keyAssign[i * COLUMNS + j]);
     }
   }
 }

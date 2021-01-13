@@ -16,9 +16,9 @@ void setup() {
   Serial.begin(9600);
   backlight.begin();
   Keyboard.begin();
-  
+
   backlight.setBrightness(255);
-  
+
   pinMode(H1, INPUT_PULLUP);
   pinMode(H2, INPUT_PULLUP);
   pinMode(H3, INPUT_PULLUP);
@@ -41,13 +41,6 @@ void loop() {
   readKeys(keys);
   updateKeys(keys);
 
-  if (micros()  % 1000000 > 10000) {
-    if (!written) {
-      pressedColors(colors, keys);
-      writeColors(backlight, colors);
-      written = true;
-    }
-  } else {
-    written = false;
-  }
+  pressedColors(colors, keys);
+  writeColors(backlight, colors);
 }
