@@ -1,13 +1,14 @@
 #include <Adafruit_NeoPixel.h>
-#include "Keypad_functions.h"
-#include "Constants.h"
+#include <Keyboard.h>
 
-int rainR = 000;
-int rainG = 255;
-int rainB = 255;
-String rainMode = "gd";
+#define ROWS 3
+#define COLUMNS 4
 
-int inc = 1; //How fast the rainbow updates, higher = faster
+char keyAssign[ROWS][COLUMNS] {
+  {KEY_F13, KEY_F14, KEY_F15, KEY_F16},
+  {KEY_F17, KEY_F18, KEY_F19, KEY_F20},
+  {KEY_F21, KEY_F22, KEY_F23, KEY_F24}
+};
 
 double dim = 0.1; //Strip brightness
 boolean keys[ROWS][COLUMNS];
@@ -25,12 +26,13 @@ int colPins[COLUMNS] = {
 
 int colors[ROWS][COLUMNS][4]; //LED colors are GRBW, for RGB set the third dimension to 3
 
-Adafruit_NeoPixel backlight(ledCount, A7, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel backlight(ledCount, 7, NEO_GRBW + NEO_KHZ800);
 
 void setup() {
   Serial.begin(9600);
   backlight.begin();
-  backlight.setBrightness(constrain(dim * 255, 0, 255));
+  Keyboard.begin();
+  backlight.setBrightness(255);
   pinMode(0, INPUT_PULLUP);
   pinMode(1, INPUT_PULLUP);
   pinMode(2, INPUT_PULLUP);
@@ -49,14 +51,14 @@ void setup() {
 
 
 void loop() {
-  readKeys(keys, rowPins, colPins);
-  writePresses;
+  readKeys();
+  updateKeys();
+
   counter++;
-  if (counter == 100) {
+  if (counter == 10) {
     pressedColors();
     writeColors();
     counter = 0;
-    updateRain();
   }
 }
 
@@ -103,54 +105,46 @@ void pressedColors() { //Demo lighting function that sets all pressed keys to ra
   for (int i = 0; i < ROWS; i++) {
     for (int j = 0; j < COLUMNS; j++) {
       if (keys[i][j]) {
-        colors[i][j][0] = rainR;
-        colors[i][j][1] = rainG;
-        colors[i][j][2] = rainB;
+        colors[i][j][0] = 255;
+        colors[i][j][1] = 0;
+        colors[i][j][2] = 255;
         colors[i][j][3] = 0;
       } else {
-        colors[i][j][0] = 255 - rainR;
-        colors[i][j][1] = 255 - rainG;
-        colors[i][j][2] = 255 - rainB;
+        colors[i][j][0] = 0;
+        colors[i][j][1] = 255;
+        colors[i][j][2] = 255;
         colors[i][j][3] = 0;
       }
     }
   }
 }
 
-void updateRain() { //Called every few loops, updates the rainbow values
-  if (rainMode == "ru") {
-    rainR += inc;
-  } else if (rainMode == "rd") {
-    rainR -= inc;
-  } else if (rainMode == "gu") {
-    rainG += inc;
-  } else if (rainMode == "gd") {
-    rainG -= inc;
-  } else if (rainMode == "bu") {
-    rainB += inc;
-  } else if (rainMode == "bd") {
-    rainB -= inc;
-  }
-
-  rainR = constrain(rainR, 0, 255);
-  rainG = constrain(rainG, 0, 255);
-  rainB = constrain(rainB, 0, 255);
-
-  if (rainR == 255 && rainG == 255) {
-    rainMode = "rd";
-  } else if (rainG == 255 && rainB == 255) {
-    rainMode = "gd";
-  } else if (rainB == 255 && rainR == 255) {
-    rainMode = "bd";
-  } else if (rainR == 0 && rainG == 0) {
-    rainMode = "ru";
-  } else if (rainG == 0 && rainB == 0) {
-    rainMode = "gu";
-  } else if (rainB == 0 && rainR == 0) {
-    rainMode = "bu";
+void readKeys() { //Updates key states in the keys array
+  for (int i = 0; i < COLUMNS; i++) {
+    digitalWrite(colPins[i], LOW);
+    for (int j = 0; j < ROWS; j++) {
+      keys[j][i] = !digitalRead(rowPins[j]);
+    }
+    digitalWrite(colPins[i], HIGH);
   }
 }
 
 uint32_t pixelColor(int i, int j) { //Basically just the strip.Color function from the Adafruit Neopixel library, just for the colors array
   return ((uint32_t)colors[i][j][3] << 24) | ((uint32_t)colors[i][j][0] << 16) | ((uint32_t)colors[i][j][1] <<  8) | colors[i][j][2];
+}
+
+void updateKeys() {
+  for (int i = 0; i < ROWS; i++) {
+    for (int j = 0; j < COLUMNS; j++) {
+      booleanKeyboard(keys[i][j], keyAssign[i][j]);
+    }
+  }
+}
+
+void booleanKeyboard(boolean logic, char key) {
+  if (logic) {
+    Keyboard.press(key);
+  } else {
+    Keyboard.release(key);
+  }
 }
